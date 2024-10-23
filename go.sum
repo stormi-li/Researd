@@ -1,0 +1,14 @@
+github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
+github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
+github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
+github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
+github.com/go-redis/redis/v8 v8.11.5 h1:AcZZR7igkdvfVmQTPnu9WE37LRrO/YrBH5zWyjDC0oI=
+github.com/go-redis/redis/v8 v8.11.5/go.mod h1:gREzHqY1hg6oD9ngVRbLStwAWKhA0FEgq8Jd4h5lpwo=
+github.com/stormi-li/Reconfig v1.0.1 h1:UhKqB6hWt+AcRnGXUtJMsTf3EMBkneKwn1csKo1x4mQ=
+github.com/stormi-li/Reconfig v1.0.1/go.mod h1:TO9YyguMdYrGg3cNPHcDxQd/915cwCBURZe+KLrSaxg=
+github.com/stormi-li/Reconfig v1.0.2 h1:i0nlEjt9JJU/IoPKbChIpScw4wQnxNwMd7vNCB/WffQ=
+github.com/stormi-li/Reconfig v1.0.2/go.mod h1:TO9YyguMdYrGg3cNPHcDxQd/915cwCBURZe+KLrSaxg=
+github.com/stormi-li/Reconfig v1.0.3 h1:PrpEx8nEvSEQh3ySxdm9logcg/dCZJkKR8Or8sq+FnI=
+github.com/stormi-li/Reconfig v1.0.3/go.mod h1:TO9YyguMdYrGg3cNPHcDxQd/915cwCBURZe+KLrSaxg=
+github.com/stormi-li/Ripc v1.0.0 h1:2ClWha2EUPTqXGvpG84OMBwFRSWem/lp3gT4Rk/KDFU=
+github.com/stormi-li/Ripc v1.0.0/go.mod h1:6hryBwoC4Y+8SOzF2BWiPDWB8X1IzuDtCXpiVIaziZ0=
