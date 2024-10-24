@@ -56,7 +56,7 @@ func (c *Client) Register(name string, addr string, weight int) {
 const prefix = "stormi:config:"
 
 func (client *Client) Discover(name string) []string {
-	names, _ := client.getKeysByNamespace(prefix + name)
+	names, _ := client.GetKeysByNamespace(prefix + name)
 	addrs := []string{}
 	for _, nn := range names {
 		configInfo := client.reconfig.GetConfig(name + nn)
@@ -121,7 +121,7 @@ func shuffleArray(arr []string) {
 	})
 }
 
-func (client *Client) getKeysByNamespace(namespace string) ([]string, error) {
+func (client *Client) GetKeysByNamespace(namespace string) ([]string, error) {
 	var keys []string
 	cursor := uint64(0)
 
