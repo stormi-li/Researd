@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/go-redis/redis/v8"
 	researd "github.com/stormi-li/Researd"
 )
@@ -14,7 +12,5 @@ func main() {
 	client := researd.NewClient(redisClient)
 	client.SetNamespace("a")
 
-	client.Connect("server", func(addr string) {
-		fmt.Println(addr)
-	})
+	client.Register("server", "lll:111", 3)
 }

@@ -1,8 +1,14 @@
 package main
 
-import researd "github.com/stormi-li/Researd"
+import (
+	"github.com/go-redis/redis/v8"
+	researd "github.com/stormi-li/Researd"
+)
 
 func main() {
-	client, _ := researd.NewClient("localhost:6379")
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "118.25.196.166:6379",
+	})
+	client := researd.NewClient(redisClient)
 	client.Register("server", "lll:333", 3)
 }
