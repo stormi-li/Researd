@@ -5,10 +5,12 @@ import (
 	researd "github.com/stormi-li/Researd"
 )
 
+var redisAddr = "your redis addr"
+
 func main() {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "118.25.196.166:6379",
+		Addr: redisAddr,
 	})
 	client := researd.NewClient(redisClient)
-	client.Register("server", "lll:333", 3)
+	client.Register("server", "lll:333", 3) //参数为服务名，地址，权重
 }

@@ -61,7 +61,7 @@ func (c *Client) Register(name string, addr string, weight int) {
 
 const prefix = "stormi:config:"
 
-func (c *Client) Discover(name string) []string {
+func (c *Client) getAddrs(name string) []string {
 	names := reconfig.GetKeysByNamespace(c.redisClient, c.Namespace+prefix+name)
 	addrs := []string{}
 	for _, nn := range names {
@@ -76,7 +76,7 @@ func (c *Client) Discover(name string) []string {
 }
 
 func (client *Client) getValidAddr(name string) string {
-	addrs := client.Discover(name)
+	addrs := client.getAddrs(name)
 	var validAddr string
 	for _, addr := range addrs {
 		client.ripcClient.Notify(name+addr, ask)
@@ -91,7 +91,7 @@ func (client *Client) getValidAddr(name string) string {
 	return validAddr
 }
 
-func (client *Client) Connect(name string, handler func(addr string)) {
+func (client *Client) Discover(name string, handler func(addr string)) {
 	addr := ""
 	for {
 		if addr == "" {

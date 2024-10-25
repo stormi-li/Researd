@@ -7,14 +7,14 @@ import (
 	researd "github.com/stormi-li/Researd"
 )
 
+var redisAddr = "your redis addr"
+
 func main() {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "118.25.196.166:6379",
+		Addr: redisAddr,
 	})
 	client := researd.NewClient(redisClient)
-	client.SetNamespace("a")
-
-	client.Connect("server", func(addr string) {
+	client.Discover("server", func(addr string) {
 		fmt.Println(addr)
-	})
+	}) 
 }
