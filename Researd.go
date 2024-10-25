@@ -18,11 +18,13 @@ type Client struct {
 	ctx         context.Context
 }
 
+const registerPrefix = "stormi:register:"
+
 func NewClient(redisClient *redis.Client, namespace string) *Client {
 	return &Client{
 		ripcClient:  ripc.NewClient(redisClient, namespace),
 		redisClient: redisClient,
-		namespace:   namespace + ":",
+		namespace:   namespace + ":" + registerPrefix,
 		ctx:         context.Background(),
 	}
 }
@@ -30,10 +32,8 @@ func NewClient(redisClient *redis.Client, namespace string) *Client {
 const alive = "alive"
 const ask = "ask"
 
-const registerPrefix = "stormi:register:"
-
 func (c *Client) Register(name string, addr string, weight int) {
-	key := c.namespace + registerPrefix + name + ":" + addr + ":" + strconv.Itoa(weight)
+	key := c.namespace + name + ":" + addr + ":" + strconv.Itoa(weight)
 	go func() {
 		for {
 			c.redisClient.Set(c.ctx, key, "", 30*time.Second)
@@ -57,7 +57,7 @@ func (c *Client) Register(name string, addr string, weight int) {
 }
 
 func (c *Client) getAddrs(name string) []string {
-	names := getKeysByNamespace(c.redisClient, c.namespace+registerPrefix+name)
+	names := getKeysByNamespace(c.redisClient, c.namespace+name)
 	addrs := []string{}
 	for _, name := range names {
 		addr, weight := splitAddress(name)
@@ -72,7 +72,11 @@ func (c *Client) getAddrs(name string) []string {
 func (client *Client) getValidAddr(name string) string {
 	addrs := client.getAddrs(name)
 	var validAddr string
-	for _, addr := range addrs {
+	for {
+		if len(addrs) == 0 {
+			break
+		}
+		addr := addrs[0]
 		client.ripcClient.Notify(name+addr, ask)
 		res := client.ripcClient.Wait(name+addr, 1*time.Second)
 		if res == alive {
@@ -128,7 +132,7 @@ func removeValue(arr []string, value string) []string {
 	result := []string{}
 	for _, val := range arr {
 		if val != value {
-			result = append(result, value)
+			result = append(result, val)
 		}
 	}
 	return result
