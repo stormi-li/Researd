@@ -16,6 +16,9 @@ func main() {
 		Password: password,
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
+	go func() {
+		client.Register("server", "localhost:8080", 3)
+	}()
 	client.Discover("server", func(addr string) {
 		fmt.Println(addr)
 	})
