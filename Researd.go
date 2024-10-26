@@ -65,7 +65,6 @@ func (c *Client) getAddrs(name string) []string {
 			addrs = append(addrs, addr)
 		}
 	}
-	shuffleArray(addrs)
 	return addrs
 }
 
@@ -76,7 +75,7 @@ func (client *Client) getValidAddr(name string) string {
 		if len(addrs) == 0 {
 			break
 		}
-		addr := addrs[0]
+		addr := addrs[rand.IntN(len(addrs))]
 		client.ripcClient.Notify(name+addr, ask)
 		res := client.ripcClient.Wait(name+addr, 1*time.Second)
 		if res == alive {
@@ -136,12 +135,6 @@ func removeValue(arr []string, value string) []string {
 		}
 	}
 	return result
-}
-
-func shuffleArray(arr []string) {
-	rand.Shuffle(len(arr), func(i, j int) {
-		arr[i], arr[j] = arr[j], arr[i] // 交换元素
-	})
 }
 
 func getKeysByNamespace(redisClient *redis.Client, namespace string) []string {
