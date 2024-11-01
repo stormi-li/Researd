@@ -40,7 +40,7 @@ func (discover *Discovery) getMainNodeAddress() string {
 	var validAddr string
 	for _, val := range addrs {
 		addr := splitAddress(val)
-		channel := discover.serverName + ":" + addr
+		channel := discover.serverName + const_splitChar + addr
 		discover.ripcClient.Notify(channel, const_ask)
 		res := discover.ripcClient.Wait(channel, 1*time.Second)
 		if res == const_alive {
@@ -65,7 +65,7 @@ func (discover *Discovery) Listen(handler func(msg string)) {
 }
 
 func splitAddress(address string) string {
-	index := strings.Index(address, ":")
+	index := strings.Index(address, const_splitChar)
 	if index == -1 {
 		return ""
 	}

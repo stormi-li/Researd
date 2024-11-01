@@ -16,6 +16,6 @@ func main() {
 	client := researd.NewClient(redisClient, "researd-namespace")
 	register1 := client.NewRegister("server", "1223213:1111")
 	register2 := client.NewRegister("server", "1223213:2222")
-	register1.UpdateNodeType(researd.Main)
-	register2.UpdateNodeType(researd.Standby)
+	register1.UpdateNodeType(researd.Standby)
+	register2.UpdateNodeType(researd.Main)
 }
