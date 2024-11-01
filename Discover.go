@@ -3,7 +3,6 @@ package researd
 import (
 	"context"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -32,11 +31,11 @@ func newDiscover(redisClient *redis.Client, ripcClient *ripc.Client, namespace s
 func (discover *Discover) SearchNodes() []string {
 	addrs := getKeysByNamespace(discover.redisClient, discover.namespace+discover.serverName)
 	sort.Slice(addrs, func(a, b int) bool {
-		return addrs[a] > addrs[b]
+		return addrs[a] < addrs[b]
 	})
 	return addrs
 }
-func (discover *Discover) getHighestWeightAddr() string {
+func (discover *Discover) getMainNodeAddress() string {
 	addrs := discover.SearchNodes()
 	var validAddr string
 	for _, val := range addrs {
@@ -52,11 +51,11 @@ func (discover *Discover) getHighestWeightAddr() string {
 	return validAddr
 }
 
-func (discover *Discover) ListenBestNode(handler func(msg string)) {
+func (discover *Discover) ListenMainNode(handler func(msg string)) {
 	addr := ""
 	newAddr := ""
 	for {
-		newAddr = discover.getHighestWeightAddr()
+		newAddr = discover.getMainNodeAddress()
 		if newAddr != "" && newAddr != addr {
 			addr = newAddr
 			handler(addr)
@@ -72,19 +71,6 @@ func splitAddress(address string) string {
 	}
 	hostAndPort := address[index+1:]
 	return hostAndPort
-}
-
-func splitWeight(address string) (string, int) {
-	index := strings.Index(address, ":")
-	if index == -1 {
-		return "", 0
-	}
-	str := address[:index]
-	newWeight, err := strconv.Atoi(address[index+1:])
-	if err == nil {
-		return str, newWeight
-	}
-	return "", 0
 }
 
 func getKeysByNamespace(redisClient *redis.Client, namespace string) []string {

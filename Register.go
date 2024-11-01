@@ -2,7 +2,7 @@ package researd
 
 import (
 	"context"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -15,7 +15,7 @@ type Register struct {
 	namespace   string
 	ctx         context.Context
 	serverName  string
-	weight      int
+	nodeType    NodeType
 	addr        string
 }
 
@@ -30,9 +30,9 @@ func newRegister(redisClient *redis.Client, ripcClient *ripc.Client, namespace s
 	}
 }
 
-func (register *Register) Start(weight int) {
-	register.weight = weight
-	key := register.namespace + register.serverName + ":" + strconv.Itoa(register.weight) + ":" + register.addr
+func (register *Register) Start(nodeType NodeType) {
+	register.nodeType = nodeType
+	key := register.namespace + register.serverName + ":" + nodeType.String() + ":" + register.addr
 	go func() {
 		for {
 			register.redisClient.Set(register.ctx, key, "", 30*time.Second)
@@ -48,17 +48,27 @@ func (register *Register) Start(weight int) {
 			}
 		}
 		if msg != const_alive {
-			if request, newWeight := splitWeight(msg); request == const_updateWeight {
+			if command, nodeType := splitNodeType(msg); command == const_updateNodeType {
 				register.redisClient.Del(register.ctx, key)
-				key = register.namespace + register.serverName + ":" + strconv.Itoa(newWeight) + ":" + register.addr
+				key = register.namespace + register.serverName + ":" + nodeType + ":" + register.addr
 				register.redisClient.Set(register.ctx, key, "", 30*time.Second)
 			}
 		}
 	})
 }
 
-func (register *Register) UpdateWeight(weight int) {
-	register.weight = weight
+func (register *Register) UpdateNodeType(nodeType NodeType) {
+	if nodeType != Main && nodeType != Standby {
+		return
+	}
 	channel := register.serverName + ":" + register.addr
-	register.ripcClient.Notify(channel, const_updateWeight+":"+strconv.Itoa(weight))
+	register.ripcClient.Notify(channel, const_updateNodeType+":"+nodeType.String())
+}
+
+func splitNodeType(address string) (string, string) {
+	index := strings.Index(address, ":")
+	if index == -1 {
+		return "", ""
+	}
+	return address[:index], address[index+1:]
 }

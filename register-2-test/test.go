@@ -15,5 +15,5 @@ func main() {
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
 	register := client.NewRegister("server", "1223213:2222")
-	register.Start(2)
+	register.Start(researd.Standby)
 }

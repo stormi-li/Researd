@@ -17,7 +17,8 @@ func main() {
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
 	discover := client.NewDiscover("server")
-	discover.ListenBestNode(func(msg string) {
+	fmt.Println(discover.SearchNodes())
+	discover.ListenMainNode(func(msg string) {
 		fmt.Println(msg)
 	})
 }
