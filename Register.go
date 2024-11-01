@@ -41,18 +41,10 @@ func (register *Register) Start(nodeType NodeType) {
 	}()
 	channel := register.serverName + const_splitChar + register.addr
 	register.ripcClient.NewListener(channel).Listen(func(msg string) {
-		if msg == const_ask {
-			for i := 0; i < 10; i++ {
-				register.ripcClient.Notify(channel, const_alive)
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-		if msg != const_alive {
-			if command, nodeType := splitNodeType(msg); command == const_updateNodeType {
-				register.redisClient.Del(register.ctx, key)
-				key = register.namespace + register.serverName + const_splitChar + nodeType + const_splitChar + register.addr
-				register.redisClient.Set(register.ctx, key, "", const_expireTime)
-			}
+		if command, nodeType := splitNodeType(msg); command == const_updateNodeType {
+			register.redisClient.Del(register.ctx, key)
+			key = register.namespace + register.serverName + const_splitChar + nodeType + const_splitChar + register.addr
+			register.redisClient.Set(register.ctx, key, "", const_expireTime)
 		}
 	})
 }

@@ -2,13 +2,11 @@ package researd
 
 import "time"
 
-const const_ask = "ask"
-const const_alive = "alive"
 const const_updateNodeType = "updateNodeType"
 const const_NodePrefix = "stormi:node:"
 const const_mqPrefix = "stormi:mq:"
 const const_splitChar = ":"
-const const_expireTime = 4 * time.Second
+const const_expireTime = 2 * time.Second
 
 type ServerType int
 

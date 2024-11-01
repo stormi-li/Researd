@@ -38,15 +38,8 @@ func (discover *Discovery) SearchServer() []string {
 func (discover *Discovery) getMainNodeAddress() string {
 	addrs := discover.SearchServer()
 	var validAddr string
-	for _, val := range addrs {
-		addr := splitAddress(val)
-		channel := discover.serverName + const_splitChar + addr
-		discover.ripcClient.Notify(channel, const_ask)
-		res := discover.ripcClient.Wait(channel, 1*time.Second)
-		if res == const_alive {
-			validAddr = addr
-			break
-		}
+	if len(addrs) > 0 {
+		validAddr = splitAddress(addrs[0])
 	}
 	return validAddr
 }
