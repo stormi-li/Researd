@@ -2,7 +2,7 @@ package researd
 
 import (
 	"context"
-	"math/rand/v2"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -32,111 +32,71 @@ func NewClient(redisClient *redis.Client, namespace string) *Client {
 const alive = "alive"
 const ask = "ask"
 
-func (c *Client) Register(name string, addr string, weight int) {
-	key := c.namespace + name + ":" + addr + ":" + strconv.Itoa(weight)
+func (c *Client) Register(name string, weight int, addr string) {
+	key := c.namespace + name + ":" + strconv.Itoa(weight) + ":" + addr
 	go func() {
 		for {
 			c.redisClient.Set(c.ctx, key, "", 30*time.Second)
-			time.Sleep(25 * time.Second)
+			time.Sleep(15 * time.Second)
 		}
 	}()
-	go func() {
-		c.ripcClient.NewListener(name + addr).Listen(func(msg string) {
-			if msg == ask {
-				for i := 0; i < 10; i++ {
-					c.ripcClient.Notify(name+addr, alive)
-					time.Sleep(100 * time.Millisecond)
-				}
+	c.ripcClient.NewListener(name + addr).Listen(func(msg string) {
+		if msg == ask {
+			for i := 0; i < 10; i++ {
+				c.ripcClient.Notify(name+addr, alive)
+				time.Sleep(100 * time.Millisecond)
 			}
-		})
-	}()
-	for {
-		c.ripcClient.Notify(name+addr, alive)
-		time.Sleep(2 * time.Second)
-	}
-}
-
-func (c *Client) getAddrs(name string) []string {
-	names := getKeysByNamespace(c.redisClient, c.namespace+name)
-	addrs := []string{}
-	for _, name := range names {
-		addr, weight := splitAddress(name)
-		for i := 0; i < weight; i++ {
-			addrs = append(addrs, addr)
 		}
-	}
-	return addrs
+	})
 }
 
-func (client *Client) getValidAddr(name string) string {
-	addrs := client.getAddrs(name)
+func (client *Client) getHighestWeightAddr(name string) string {
+	addrs := client.getSortedAddrs(name)
 	var validAddr string
-	for {
-		if len(addrs) == 0 {
-			break
-		}
-		addr := addrs[rand.IntN(len(addrs))]
+	for _, val := range addrs {
+		addr := splitAddress(val)
 		client.ripcClient.Notify(name+addr, ask)
 		res := client.ripcClient.Wait(name+addr, 1*time.Second)
 		if res == alive {
 			validAddr = addr
 			break
-		} else {
-			addrs = removeValue(addrs, addr)
 		}
 	}
 	return validAddr
 }
 
-func (client *Client) Discover(name string, handler func(addr string)) {
+func (c *Client) Discover(name string, handler func(addr string)) {
 	addr := ""
+	newAddr := ""
 	for {
-		if addr == "" {
-			addr = client.getValidAddr(name)
-			if addr != "" {
-				handler(addr)
-			}
-			time.Sleep(2 * time.Second)
-		} else {
-			res := client.ripcClient.Wait(name+addr, 5*time.Second)
-			if res != alive {
-				addr = ""
-			}
+		newAddr = c.getHighestWeightAddr(name)
+		if newAddr != "" && newAddr != addr {
+			addr = newAddr
+			handler(addr)
 		}
+		time.Sleep(2 * time.Second)
 	}
 }
 
-func splitAddress(address string) (string, int) {
-	index := strings.LastIndex(address, ":")
+func (c *Client) getSortedAddrs(name string) []string {
+	addrs := getKeysByNamespace(c.redisClient, c.namespace+name)
+	sort.Slice(addrs, func(a, b int) bool {
+		return addrs[a] > addrs[b]
+	})
+	return addrs
+}
 
-	// 如果没有找到冒号，返回错误
+func splitAddress(address string) string {
+	index := strings.Index(address, ":")
+
 	if index == -1 {
-		return "", 0
+		return ""
 	}
 
-	// 分割成前部分和后部分
-	hostAndPort := address[:index] // 冒号前的部分
-	numberStr := address[index+1:] // 冒号后的部分
+	hostAndPort := address[index+1:]
 
-	// 将冒号后的部分转换为 int
-	num, err := strconv.Atoi(numberStr)
-	if err != nil {
-		return "", 0
-	}
-
-	return hostAndPort, num
+	return hostAndPort
 }
-
-func removeValue(arr []string, value string) []string {
-	result := []string{}
-	for _, val := range arr {
-		if val != value {
-			result = append(result, val)
-		}
-	}
-	return result
-}
-
 func getKeysByNamespace(redisClient *redis.Client, namespace string) []string {
 	var keys []string
 	cursor := uint64(0)

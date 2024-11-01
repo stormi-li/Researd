@@ -14,5 +14,5 @@ func main() {
 		Password: password,
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
-	client.Register("server", "1223213:2222", 2)
+	client.Register("server", 2, "1223213:2222")
 }
