@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/go-redis/redis/v8"
 	researd "github.com/stormi-li/Researd"
 )
@@ -16,8 +14,6 @@ func main() {
 		Password: password,
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
-	discover := client.NewDiscover("server")
-	discover.ListenBestNode(func(msg string) {
-		fmt.Println(msg)
-	})
+	register := client.NewRegister("server", "1223213:1111")
+	register.UpdateWeight(5)
 }
