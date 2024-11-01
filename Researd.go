@@ -11,11 +11,15 @@ type Client struct {
 	namespace   string
 }
 
-func NewClient(redisClient *redis.Client, namespace string) *Client {
+func NewClient(redisClient *redis.Client, namespace string, model ...string) *Client {
+	prefix := const_registerPrefix
+	if len(model) != 0 && model[0] == Model_MQ {
+		prefix = const_mqPrefix
+	}
 	return &Client{
 		ripcClient:  ripc.NewClient(redisClient, namespace),
 		redisClient: redisClient,
-		namespace:   namespace + ":" + const_registerPrefix,
+		namespace:   namespace + ":" + prefix,
 	}
 }
 
