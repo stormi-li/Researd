@@ -27,6 +27,6 @@ func (c *Client) NewRegister(serverName string, address string) *Register {
 	return newRegister(c.redisClient, c.ripcClient, c.namespace, serverName, address)
 }
 
-func (c *Client) NewDiscover(serverName string) *Discover {
-	return newDiscover(c.redisClient, c.ripcClient, c.namespace, serverName)
+func (c *Client) NewDiscovery(serverName string) *Discovery {
+	return newDiscovery(c.redisClient, c.ripcClient, c.namespace, serverName)
 }

@@ -16,9 +16,9 @@ func main() {
 		Password: password,
 	})
 	client := researd.NewClient(redisClient, "researd-namespace")
-	discover := client.NewDiscover("server")
-	fmt.Println(discover.SearchNodes())
-	discover.ListenMainNode(func(msg string) {
+	discover := client.NewDiscovery("server")
+	fmt.Println(discover.SearchServer())
+	discover.Listen(func(msg string) {
 		fmt.Println(msg)
 	})
 }

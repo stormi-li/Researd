@@ -13,7 +13,7 @@ func main() {
 		Addr:     redisAddr,
 		Password: password,
 	})
-	client := researd.NewClient(redisClient, "researd-namespace",researd.Node)
+	client := researd.NewClient(redisClient, "researd-namespace",researd.MQ)
 	register := client.NewRegister("server", "1223213:1111")
 	register.Start(researd.Main)
 }

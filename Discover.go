@@ -10,7 +10,7 @@ import (
 	ripc "github.com/stormi-li/Ripc"
 )
 
-type Discover struct {
+type Discovery struct {
 	redisClient *redis.Client
 	ripcClient  *ripc.Client
 	namespace   string
@@ -18,8 +18,8 @@ type Discover struct {
 	serverName  string
 }
 
-func newDiscover(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string) *Discover {
-	return &Discover{
+func newDiscovery(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string) *Discovery {
+	return &Discovery{
 		redisClient: redisClient,
 		ripcClient:  ripcClient,
 		namespace:   namespace,
@@ -28,15 +28,15 @@ func newDiscover(redisClient *redis.Client, ripcClient *ripc.Client, namespace s
 	}
 }
 
-func (discover *Discover) SearchNodes() []string {
+func (discover *Discovery) SearchServer() []string {
 	addrs := getKeysByNamespace(discover.redisClient, discover.namespace+discover.serverName)
 	sort.Slice(addrs, func(a, b int) bool {
 		return addrs[a] < addrs[b]
 	})
 	return addrs
 }
-func (discover *Discover) getMainNodeAddress() string {
-	addrs := discover.SearchNodes()
+func (discover *Discovery) getMainNodeAddress() string {
+	addrs := discover.SearchServer()
 	var validAddr string
 	for _, val := range addrs {
 		addr := splitAddress(val)
@@ -51,7 +51,7 @@ func (discover *Discover) getMainNodeAddress() string {
 	return validAddr
 }
 
-func (discover *Discover) ListenMainNode(handler func(msg string)) {
+func (discover *Discovery) Listen(handler func(msg string)) {
 	addr := ""
 	newAddr := ""
 	for {
