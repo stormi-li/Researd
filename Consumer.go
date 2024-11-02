@@ -15,23 +15,19 @@ type Consumer struct {
 	messageChan   chan []byte
 	buffer        [][]byte
 	bufferLock    sync.Mutex
+	register      *Register
 }
 
-func newConsumer(researdCLient *Client, channel string, address string) *Consumer {
-	listener, err := net.Listen("tcp", ":"+strings.Split(address, ":")[1])
-	if err != nil {
-		panic(err)
-	}
+func newConsumer(researdClient *Client, channel string, address string) *Consumer {
 	consumer := Consumer{
-		researdClient: researdCLient,
+		researdClient: researdClient,
 		channel:       channel,
 		address:       address,
-		listener:      listener,
 		messageChan:   make(chan []byte, 1000),
 		buffer:        [][]byte{},
 		bufferLock:    sync.Mutex{},
+		register:      researdClient.NewRegister(channel, address),
 	}
-	go consumer.startListen()
 	return &consumer
 }
 
@@ -111,30 +107,46 @@ func (consumer *Consumer) handleConnection(conn net.Conn) {
 }
 
 func (consumer *Consumer) StartOnMain(handler func(data []byte)) {
-	register := consumer.researdClient.NewRegister(consumer.channel, consumer.address)
-	go register.StartOnMain(map[string]string{})
+	go consumer.register.StartOnMain(map[string]string{"server type": "MQ"})
 	consumer.start(handler)
 }
 
 func (consumer *Consumer) StartOnStandby(handler func(data []byte)) {
-	register := consumer.researdClient.NewRegister(consumer.channel, consumer.address)
-	go register.StartOnStandby(map[string]string{})
+	go consumer.register.StartOnStandby(map[string]string{"server type": "MQ"})
 	consumer.start(handler)
 }
 
+func (consumer *Consumer) ToMain() {
+	consumer.register.ToMain()
+}
+
+func (consumer *Consumer) ToStandby() {
+	consumer.register.ToStandby()
+}
+
 func (consumer *Consumer) start(handler func(message []byte)) {
+	listener, err := net.Listen("tcp", ":"+strings.Split(consumer.address, ":")[1])
+	if err != nil {
+		panic(err)
+	}
+	consumer.listener = listener
+	go consumer.startListen()
 	for {
-		msg := <-consumer.messageChan
-		consumer.bufferLock.Lock()
-		if len(consumer.buffer) > 0 {
-			select {
-			case consumer.messageChan <- consumer.buffer[0]: // 非阻塞写入
-				// 发送成功后删除缓冲区中的消息
-				consumer.buffer = consumer.buffer[1:]
-			default:
+		select {
+		case msg := <-consumer.messageChan:
+			consumer.bufferLock.Lock()
+			if len(consumer.buffer) > 0 {
+				select {
+				case consumer.messageChan <- consumer.buffer[0]: // 非阻塞写入
+					// 发送成功后删除缓冲区中的消息
+					consumer.buffer = consumer.buffer[1:]
+				default:
+				}
 			}
+			consumer.bufferLock.Unlock()
+			handler(msg)
+		case <-consumer.register.close:
+			return
 		}
-		consumer.bufferLock.Unlock()
-		handler(msg)
 	}
 }

@@ -13,10 +13,7 @@ func main() {
 		Addr:     redisAddr,
 		Password: password,
 	})
-	client := researd.NewClient(redisClient, "researd-namespace", researd.MQ)
-	register1 := client.NewRegister("channel-1", "118.25.196.166:8899")
-	register1.Close()
-	// register2 := client.NewConsumer("channel-1", "118.25.196.166:8999")
-	// register1.ToStandby()
-	// register2.ToMain()
+	client := researd.NewClient(redisClient, "researd-namespace", researd.Config)
+	register := client.NewRegister("mysql", "1223213:1111")
+	register.UpdateData(map[string]string{"database":"order"})
 }

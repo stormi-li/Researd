@@ -56,3 +56,7 @@ func (c *Client) Wait(channel string, timeout time.Duration) string {
 func (c *Client) NewListener(channel string) *Listener {
 	return newListener(c.redisClient.Subscribe(c.ctx, c.namespace+channel))
 }
+
+func (c *Client) NewLock(lockName string) *Lock {
+	return newLock(c.redisClient, c, lockName, c.namespace)
+}

@@ -14,6 +14,6 @@ func main() {
 		Password: password,
 	})
 	client := researd.NewClient(redisClient, "researd-namespace",researd.Config)
-	register := client.NewRegister("mysql", "1223213:1111")
+	register := client.NewRegister("mysql", "1223213:2222")
 	register.StartOnMain(map[string]string{"database": "user"})
 }

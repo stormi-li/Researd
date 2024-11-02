@@ -17,17 +17,21 @@ type Register struct {
 	ctx         context.Context
 	serverName  string
 	nodeType    string
-	addr        string
+	address     string
+	channel     string
+	close       chan struct{}
 }
 
-func newRegister(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string, addr string) *Register {
+func newRegister(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string, address string) *Register {
 	return &Register{
 		redisClient: redisClient,
 		ripcClient:  ripcClient,
 		namespace:   namespace,
 		serverName:  serverName,
 		ctx:         context.Background(),
-		addr:        addr,
+		address:     address,
+		channel:     serverName + const_separator + address,
+		close:       make(chan struct{}, 1),
 	}
 }
 
@@ -40,39 +44,88 @@ func (register *Register) StartOnStandby(data map[string]string) {
 }
 
 func (register *Register) start(nodeType string, data map[string]string) {
-	jsonStr, _ := json.MarshalIndent(data, " ", "  ")
+	jsonByte, _ := json.MarshalIndent(data, " ", "  ")
+	jsonStr := string(jsonByte)
 	register.nodeType = nodeType
-	key := register.namespace + register.serverName + const_separator + nodeType + const_separator + register.addr
+	nodeState := state_start
+	ticker := time.NewTicker(const_expireTime / 2)
+	close := make(chan struct{}, 1)
+	update := make(chan struct{}, 1)
+
+	updateHandler := func() {
+		key := register.namespace + register.serverName + const_separator + nodeState + const_separator + nodeType + const_separator + register.address
+		register.redisClient.Set(register.ctx, key, jsonStr, const_expireTime)
+	}
+
 	go func() {
 		for {
-			register.redisClient.Set(register.ctx, key, jsonStr, const_expireTime)
-			time.Sleep(const_expireTime / 2)
+			select {
+			case <-ticker.C:
+				updateHandler()
+			case <-update:
+				updateHandler()
+			case <-close:
+				return
+			}
 		}
 	}()
-	channel := register.serverName + const_separator + register.addr
-	register.ripcClient.NewListener(channel).Listen(func(msg string) {
-		if command, nodeType := splitNodeType(msg); command == const_updateNodeType {
-			register.redisClient.Del(register.ctx, key)
-			key = register.namespace + register.serverName + const_separator + nodeType + const_separator + register.addr
-			register.redisClient.Set(register.ctx, key, jsonStr, const_expireTime)
+	channel := register.serverName + const_separator + register.address
+	listener := register.ripcClient.NewListener(channel)
+	listener.Listen(func(msg string) {
+		if msg == command_close {
+			close <- struct{}{}
+			register.close <- struct{}{}
+			listener.Close()
+		}
+		if msg == command_start {
+			nodeState = state_start
+			update <- struct{}{}
+		}
+		if msg == command_stop {
+			nodeState = state_stop
+			update <- struct{}{}
+		}
+		if msg == command_main {
+			nodeType = node_main
+			update <- struct{}{}
+		}
+		if msg == command_standby {
+			nodeType = node_standby
+			update <- struct{}{}
+		}
+		if command, json := splitCommand(msg); command == command_updateNodeData {
+			jsonStr = json
+			update <- struct{}{}
 		}
 	})
 }
 
 func (register *Register) ToMain() {
-	register.updateNodeType(node_main)
+	register.ripcClient.Notify(register.channel, command_main)
 }
 
 func (register *Register) ToStandby() {
-	register.updateNodeType(node_standby)
+	register.ripcClient.Notify(register.channel, command_standby)
 }
 
-func (register *Register) updateNodeType(nodeType string) {
-	channel := register.serverName + const_separator + register.addr
-	register.ripcClient.Notify(channel, const_updateNodeType+const_separator+nodeType)
+func (register *Register) Close() {
+	register.ripcClient.Notify(register.channel, command_close)
 }
 
-func splitNodeType(address string) (string, string) {
+func (register *Register) Start() {
+	register.ripcClient.Notify(register.channel, command_start)
+}
+
+func (register *Register) Stop() {
+	register.ripcClient.Notify(register.channel, command_stop)
+}
+
+func (register *Register) UpdateData(data map[string]string) {
+	jsonStr, _ := json.MarshalIndent(data, " ", "  ")
+	register.ripcClient.Notify(register.channel, command_updateNodeData+":"+string(jsonStr))
+}
+
+func splitCommand(address string) (string, string) {
 	index := strings.Index(address, const_separator)
 	if index == -1 {
 		return "", ""

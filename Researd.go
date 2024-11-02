@@ -31,12 +31,16 @@ func NewClient(redisClient *redis.Client, namespace string, serverType ServerTyp
 	}
 }
 
+func (c *Client) GetRipc() *ripc.Client {
+	return c.ripcClient
+}
+
 func (c *Client) NewRegister(serverName string, address string) *Register {
 	return newRegister(c.redisClient, c.ripcClient, c.namespace, serverName, address)
 }
 
-func (c *Client) NewSearcher(serverName string) *Searcher {
-	return newSearcher(c.redisClient, c.ripcClient, c.namespace, serverName)
+func (c *Client) NewSearcher() *Searcher {
+	return newSearcher(c.redisClient, c.ripcClient, c.namespace)
 }
 
 func (c *Client) NewConsumer(channel string, address string) *Consumer {
@@ -51,4 +55,8 @@ func (c *Client) NewProducer(channel string) *Producer {
 		panic("server type must be mq")
 	}
 	return newProducer(c, channel)
+}
+
+func (c *Client) NewRouter() *Router {
+	return newRouter(c.NewSearcher())
 }

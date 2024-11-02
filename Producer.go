@@ -2,6 +2,7 @@ package researd
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	"time"
 )
@@ -20,11 +21,18 @@ func newProducer(researdClient *Client, channel string) *Producer {
 		maxRetries:    10,
 		channel:       channel,
 	}
-	go producer.listen()
+	go producer.researdClient.NewSearcher().Listen(producer.channel, func(addr string, data map[string]string) {
+		producer.address = addr
+		producer.connect()
+	})
 	return &producer
 }
 
 func (producer *Producer) connect() error {
+	if producer.address == "" {
+		producer.conn = nil
+		return fmt.Errorf("no message queue service was found")
+	}
 	conn, err := net.Dial("tcp", producer.address)
 	if err == nil {
 		producer.conn = conn
@@ -33,20 +41,11 @@ func (producer *Producer) connect() error {
 	return err
 }
 
-func (producer *Producer) listen() {
-	searcher := producer.researdClient.NewSearcher(producer.channel)
-	searcher.Listen(func(addr string, data map[string]string) {
-		producer.address = addr
-		producer.connect()
-	})
-}
-
 func (producer *Producer) SetMaxRetries(maxRetries int) {
 	producer.maxRetries = maxRetries
 }
 
 func (producer *Producer) Publish(message []byte) error {
-	// 设置重试次数限制，避免无限重试
 	var err error
 	retryCount := 0
 	for producer.conn == nil {
@@ -62,15 +61,14 @@ func (producer *Producer) Publish(message []byte) error {
 	}
 	retryCount = 0
 
+	//长度前缀协议
 	byteMessage := []byte(string(message))
 	messageLength := uint32(len(byteMessage))
 
-	// 1. 写入消息长度前缀
 	lengthBuf := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBuf, messageLength)
 
 	for {
-		// 尝试写入字节流
 		_, err = producer.conn.Write(append(lengthBuf, byteMessage...))
 		if err != nil {
 			err = producer.connect()
