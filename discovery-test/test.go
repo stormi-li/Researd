@@ -15,10 +15,11 @@ func main() {
 		Addr:     redisAddr,
 		Password: password,
 	})
-	client := researd.NewClient(redisClient, "researd-namespace")
-	discover := client.NewDiscovery("server")
+	client := researd.NewClient(redisClient, "researd-namespace", researd.Server)
+	discover := client.NewSearcher("server")
 	fmt.Println(discover.SearchServer())
-	discover.Listen(func(msg string) {
-		fmt.Println(msg)
+	discover.Listen(func(address string, data map[string]string) {
+		fmt.Println(address)
+		fmt.Println(data)
 	})
 }

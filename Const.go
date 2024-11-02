@@ -3,42 +3,32 @@ package researd
 import "time"
 
 const const_updateNodeType = "updateNodeType"
-const const_NodePrefix = "stormi:node:"
+const const_configPrefix = "stormi:config:"
+const const_serverPrefix = "stormi:server:"
 const const_mqPrefix = "stormi:mq:"
-const const_splitChar = ":"
+const const_separator = ":"
+const node_standby = "standby"
+const node_main = "main"
+
+const const_waitTime = 500 * time.Millisecond
 const const_expireTime = 2 * time.Second
 
 type ServerType int
 
 const (
-	Node ServerType = iota
+	Server ServerType = iota
 	MQ
+	Config
 )
 
 func (s ServerType) String() string {
 	switch s {
-	case Node:
-		return "Node"
+	case Server:
+		return "Server"
 	case MQ:
 		return "MQ"
-	default:
-		return "Unknown"
-	}
-}
-
-type NodeType int
-
-const (
-	Main NodeType = iota
-	Standby
-)
-
-func (s NodeType) String() string {
-	switch s {
-	case Main:
-		return "Main"
-	case Standby:
-		return "Standby"
+	case Config:
+		return "Config"
 	default:
 		return "Unknown"
 	}

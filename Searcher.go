@@ -2,24 +2,26 @@ package researd
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	ripc "github.com/stormi-li/Ripc"
+	ripc "github.com/stormi-li/Researd/Ripc"
 )
 
-type Discovery struct {
+type Searcher struct {
 	redisClient *redis.Client
 	ripcClient  *ripc.Client
 	namespace   string
 	ctx         context.Context
 	serverName  string
+	data        map[string]string
 }
 
-func newDiscovery(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string) *Discovery {
-	return &Discovery{
+func newSearcher(redisClient *redis.Client, ripcClient *ripc.Client, namespace string, serverName string) *Searcher {
+	return &Searcher{
 		redisClient: redisClient,
 		ripcClient:  ripcClient,
 		namespace:   namespace,
@@ -28,37 +30,39 @@ func newDiscovery(redisClient *redis.Client, ripcClient *ripc.Client, namespace 
 	}
 }
 
-func (discover *Discovery) SearchServer() []string {
+func (discover *Searcher) SearchServer() []string {
 	addrs := getKeysByNamespace(discover.redisClient, discover.namespace+discover.serverName)
 	sort.Slice(addrs, func(a, b int) bool {
 		return addrs[a] < addrs[b]
 	})
 	return addrs
 }
-func (discover *Discovery) getMainNodeAddress() string {
+func (discover *Searcher) getMainNodeAddress() string {
 	addrs := discover.SearchServer()
 	var validAddr string
 	if len(addrs) > 0 {
 		validAddr = splitAddress(addrs[0])
+		data, _ := discover.redisClient.Get(discover.ctx, discover.namespace+discover.serverName+const_separator+addrs[0]).Result()
+		json.Unmarshal([]byte(data), &discover.data)
 	}
 	return validAddr
 }
 
-func (discover *Discovery) Listen(handler func(msg string)) {
+func (discover *Searcher) Listen(handler func(address string, data map[string]string)) {
 	addr := ""
 	newAddr := ""
 	for {
 		newAddr = discover.getMainNodeAddress()
 		if newAddr != "" && newAddr != addr {
 			addr = newAddr
-			handler(addr)
+			handler(addr, discover.data)
 		}
 		time.Sleep(2 * time.Second)
 	}
 }
 
 func splitAddress(address string) string {
-	index := strings.Index(address, const_splitChar)
+	index := strings.Index(address, const_separator)
 	if index == -1 {
 		return ""
 	}

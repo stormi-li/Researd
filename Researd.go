@@ -2,24 +2,32 @@ package researd
 
 import (
 	"github.com/go-redis/redis/v8"
-	ripc "github.com/stormi-li/Ripc"
+	ripc "github.com/stormi-li/Researd/Ripc"
 )
 
 type Client struct {
 	redisClient *redis.Client
 	ripcClient  *ripc.Client
 	namespace   string
+	serverType  ServerType
 }
 
-func NewClient(redisClient *redis.Client, namespace string, serverType ...ServerType) *Client {
-	prefix := const_NodePrefix
-	if len(serverType) != 0 && serverType[0] == MQ {
+func NewClient(redisClient *redis.Client, namespace string, serverType ServerType) *Client {
+	prefix := ""
+	if serverType == Server {
+		prefix = const_serverPrefix
+	}
+	if serverType == MQ {
 		prefix = const_mqPrefix
+	}
+	if serverType == Config {
+		prefix = const_configPrefix
 	}
 	return &Client{
 		ripcClient:  ripc.NewClient(redisClient, namespace),
 		redisClient: redisClient,
-		namespace:   namespace + const_splitChar + prefix,
+		namespace:   namespace + const_separator + prefix,
+		serverType:  serverType,
 	}
 }
 
@@ -27,6 +35,20 @@ func (c *Client) NewRegister(serverName string, address string) *Register {
 	return newRegister(c.redisClient, c.ripcClient, c.namespace, serverName, address)
 }
 
-func (c *Client) NewDiscovery(serverName string) *Discovery {
-	return newDiscovery(c.redisClient, c.ripcClient, c.namespace, serverName)
+func (c *Client) NewSearcher(serverName string) *Searcher {
+	return newSearcher(c.redisClient, c.ripcClient, c.namespace, serverName)
+}
+
+func (c *Client) NewConsumer(channel string, address string) *Consumer {
+	if c.serverType != MQ {
+		panic("server type must be mq")
+	}
+	return newConsumer(c, channel, address)
+}
+
+func (c *Client) NewProducer(channel string) *Producer {
+	if c.serverType != MQ {
+		panic("server type must be mq")
+	}
+	return newProducer(c, channel)
 }
